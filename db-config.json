@@ -1,0 +1,12 @@
+{
+  "type": "sqlite",
+  "sqlite": {
+    "file": "database.sqlite"
+  },
+  "mysql": {
+    "host": "localhost",
+    "user": "root",
+    "password": "password",
+    "database": "audara"
+  }
+}
