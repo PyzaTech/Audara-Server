@@ -1,12 +1,12 @@
 {
-  "type": "sqlite",
+  "type": "mysql",
   "sqlite": {
     "file": "database.sqlite"
   },
   "mysql": {
-    "host": "localhost",
-    "user": "root",
-    "password": "password",
-    "database": "audara"
+    "host": "10.0.0.220",
+    "user": "u164_9o2y1mHlla",
+    "password": "tlUJ9r.VPBhZ9^dydJjr3^1.",
+    "database": "s164_audara"
   }
 }
