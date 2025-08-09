@@ -126,7 +126,11 @@ wssInsecure.on('connection', (ws, req) => handleConnection(ws, req, tempUrls, de
 wssSecure.on('connection', (ws, req) => handleConnection(ws, req, tempUrls, debug));
 
 // Initialize and start servers
-initDatabase().then(() => {
+initDatabase().then(async () => {
+  // Initialize playlist tables after main database
+  const { createPlaylistTable } = require('./database/playlistManager');
+  await createPlaylistTable();
+  
   httpServer.listen(HTTP_PORT, () => {
     console.log(`🌐 WS server running at http://${SERVER_IP}:${HTTP_PORT}`);
   });

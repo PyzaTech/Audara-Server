@@ -34,7 +34,7 @@ async function initDatabase() {
 async function createUsersTable() {
   const sql = `
     CREATE TABLE IF NOT EXISTS users (
-      username ${dbConfig.type === 'mysql' ? 'VARCHAR(255)' : 'TEXT'} NOT NULL UNIQUE,
+      username ${dbConfig.type === 'mysql' ? 'VARCHAR(255)' : 'TEXT'} PRIMARY KEY,
       password ${dbConfig.type === 'mysql' ? 'VARCHAR(255)' : 'TEXT'} NOT NULL,
       profile_picture ${dbConfig.type === 'mysql' ? 'VARCHAR(255)' : 'TEXT'},
       is_admin ${dbConfig.type === 'mysql' ? 'BOOLEAN' : 'INTEGER'} DEFAULT 0,

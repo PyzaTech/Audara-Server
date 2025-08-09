@@ -16,6 +16,15 @@ const {
   handleRestoreDatabase,
   handleCreateUser
 } = require('../handlers/adminHandler');
+const {
+  handleCreatePlaylist,
+  handleGetPlaylists,
+  handleGetPlaylistSongs,
+  handleAddSongToPlaylist,
+  handleRemoveSongFromPlaylist,
+  handleDeletePlaylist,
+  handlePlayPlaylist
+} = require('../handlers/playlistHandler');
 
 // Global session storage: Map<WebSocket, {username: string, isAdmin: boolean, sessionKey: Buffer}>
 const authenticatedSessions = new Map();
@@ -100,6 +109,28 @@ function handleConnection(ws, req, tempUrls, debug) {
           break;
         case 'create_user':
           await handleCreateUser(message, ws, key);
+          break;
+        // Playlist Management Handlers
+        case 'create_playlist':
+          await handleCreatePlaylist(message, ws, key);
+          break;
+        case 'get_playlists':
+          await handleGetPlaylists(message, ws, key);
+          break;
+        case 'get_playlist_songs':
+          await handleGetPlaylistSongs(message, ws, key);
+          break;
+        case 'add_song_to_playlist':
+          await handleAddSongToPlaylist(message, ws, key);
+          break;
+        case 'remove_song_from_playlist':
+          await handleRemoveSongFromPlaylist(message, ws, key);
+          break;
+        case 'delete_playlist':
+          await handleDeletePlaylist(message, ws, key);
+          break;
+        case 'play_playlist':
+          await handlePlayPlaylist(message, ws, key);
           break;
         default:
           ws.send(encryptMessage(JSON.stringify({ success: false, error: 'Unknown action' }), key));

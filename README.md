@@ -12,6 +12,7 @@ A modular WebSocket-based music streaming server with authentication and song do
 - **Song Downloading**: Automatic song downloading from YouTube using yt-dlp
 - **Streaming**: Temporary URL generation for secure song streaming
 - **Deezer Integration**: Proxy API for Deezer chart and search functionality
+- **Playlist Management**: Create, manage, and play user playlists
 - **SSL Support**: HTTPS/WSS support with SSL certificates
 
 ## Installation
@@ -63,11 +64,29 @@ The server includes a comprehensive admin dashboard with the following features:
 
 For detailed API documentation, see [docs/ADMIN_HANDLERS.md](docs/ADMIN_HANDLERS.md).
 
+## Playlist System
+
+The server includes a comprehensive playlist management system with the following features:
+
+- **Create Playlists**: Users can create named playlists with optional descriptions
+- **Add/Remove Songs**: Add songs to playlists and remove them as needed
+- **View Playlists**: List all user playlists with song counts
+- **Playlist Details**: View detailed information about specific playlists
+- **Play Playlists**: Get all songs in a playlist for playback
+- **Delete Playlists**: Remove entire playlists
+
+For detailed API documentation, see [docs/PLAYLIST_SYSTEM.md](docs/PLAYLIST_SYSTEM.md).
+
 ## Testing
 
 Run the admin handlers test:
 ```bash
 node test/admin_handlers_test.js
+```
+
+Run the playlist system test:
+```bash
+node test_playlist.js
 ```
 
 ## Security Features

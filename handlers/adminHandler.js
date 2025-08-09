@@ -171,8 +171,8 @@ async function handleGetUserList(message, ws, key) {
     
     if (dbConfig.type === 'mysql') {
       const [rows] = await db.execute('SELECT username, is_admin, is_banned, created_at FROM users');
-      users = rows.map((row, index) => ({
-        id: `user${index + 1}`,
+      users = rows.map((row) => ({
+        id: row.username,
         username: row.username,
         isAdmin: row.is_admin === 1 || row.is_admin === true,
         isBanned: row.is_banned === 1 || row.is_banned === true,
@@ -183,8 +183,8 @@ async function handleGetUserList(message, ws, key) {
       users = await new Promise((resolve, reject) => {
         db.all('SELECT username, is_admin, is_banned, created_at FROM users', (err, rows) => {
           if (err) return reject(err);
-          const mappedUsers = (rows || []).map((row, index) => ({
-            id: `user${index + 1}`,
+          const mappedUsers = (rows || []).map((row) => ({
+            id: row.username,
             username: row.username,
             isAdmin: row.is_admin === 1 || row.is_admin === true,
             isBanned: row.is_banned === 1 || row.is_banned === true,
@@ -207,9 +207,10 @@ async function handleGetUserList(message, ws, key) {
 
 // 4. ban_user
 async function handleBanUser(message, ws, key) {
-  const { targetUsername } = message;
+  const { targetUsername, user_id } = message;
+  const username = targetUsername || user_id;
   
-  if (!targetUsername) {
+  if (!username) {
     sendError(ws, key, 'Missing target username');
     return;
   }
@@ -232,10 +233,10 @@ async function handleBanUser(message, ws, key) {
     const dbConfig = getDbConfig();
     
     if (dbConfig.type === 'mysql') {
-      await db.execute('UPDATE users SET is_banned = 1 WHERE username = ?', [targetUsername]);
+      await db.execute('UPDATE users SET is_banned = 1 WHERE username = ?', [username]);
     } else {
       await new Promise((resolve, reject) => {
-        db.run('UPDATE users SET is_banned = 1 WHERE username = ?', [targetUsername], (err) => {
+        db.run('UPDATE users SET is_banned = 1 WHERE username = ?', [username], (err) => {
           if (err) return reject(err);
           resolve();
         });
@@ -244,7 +245,8 @@ async function handleBanUser(message, ws, key) {
 
     sendSuccess(ws, key, {
       action: 'ban_user',
-      message: `User ${targetUsername} has been banned`
+      username: username,
+      message: `User ${username} has been banned`
     });
   } catch (err) {
     sendError(ws, key, 'Failed to ban user');
@@ -253,9 +255,10 @@ async function handleBanUser(message, ws, key) {
 
 // 5. unban_user
 async function handleUnbanUser(message, ws, key) {
-  const { targetUsername } = message;
+  const { targetUsername, user_id } = message;
+  const username = targetUsername || user_id;
   
-  if (!targetUsername) {
+  if (!username) {
     sendError(ws, key, 'Missing target username');
     return;
   }
@@ -278,10 +281,10 @@ async function handleUnbanUser(message, ws, key) {
     const dbConfig = getDbConfig();
     
     if (dbConfig.type === 'mysql') {
-      await db.execute('UPDATE users SET is_banned = 0 WHERE username = ?', [targetUsername]);
+      await db.execute('UPDATE users SET is_banned = 0 WHERE username = ?', [username]);
     } else {
       await new Promise((resolve, reject) => {
-        db.run('UPDATE users SET is_banned = 0 WHERE username = ?', [targetUsername], (err) => {
+        db.run('UPDATE users SET is_banned = 0 WHERE username = ?', [username], (err) => {
           if (err) return reject(err);
           resolve();
         });
@@ -290,7 +293,8 @@ async function handleUnbanUser(message, ws, key) {
 
     sendSuccess(ws, key, {
       action: 'unban_user',
-      message: `User ${targetUsername} has been unbanned`
+      username: username,
+      message: `User ${username} has been unbanned`
     });
   } catch (err) {
     sendError(ws, key, 'Failed to unban user');
@@ -299,9 +303,10 @@ async function handleUnbanUser(message, ws, key) {
 
 // 6. promote_user
 async function handlePromoteUser(message, ws, key) {
-  const { targetUsername } = message;
+  const { targetUsername, user_id } = message;
+  const username = targetUsername || user_id;
   
-  if (!targetUsername) {
+  if (!username) {
     sendError(ws, key, 'Missing target username');
     return;
   }
@@ -324,10 +329,10 @@ async function handlePromoteUser(message, ws, key) {
     const dbConfig = getDbConfig();
     
     if (dbConfig.type === 'mysql') {
-      await db.execute('UPDATE users SET is_admin = 1 WHERE username = ?', [targetUsername]);
+      await db.execute('UPDATE users SET is_admin = 1 WHERE username = ?', [username]);
     } else {
       await new Promise((resolve, reject) => {
-        db.run('UPDATE users SET is_admin = 1 WHERE username = ?', [targetUsername], (err) => {
+        db.run('UPDATE users SET is_admin = 1 WHERE username = ?', [username], (err) => {
           if (err) return reject(err);
           resolve();
         });
@@ -336,7 +341,8 @@ async function handlePromoteUser(message, ws, key) {
 
     sendSuccess(ws, key, {
       action: 'promote_user',
-      message: `User ${targetUsername} has been promoted to admin`
+      username: username,
+      message: `User ${username} has been promoted to admin`
     });
   } catch (err) {
     sendError(ws, key, 'Failed to promote user');
@@ -345,9 +351,10 @@ async function handlePromoteUser(message, ws, key) {
 
 // 7. demote_user
 async function handleDemoteUser(message, ws, key) {
-  const { targetUsername } = message;
+  const { targetUsername, user_id } = message;
+  const username = targetUsername || user_id;
   
-  if (!targetUsername) {
+  if (!username) {
     sendError(ws, key, 'Missing target username');
     return;
   }
@@ -370,10 +377,10 @@ async function handleDemoteUser(message, ws, key) {
     const dbConfig = getDbConfig();
     
     if (dbConfig.type === 'mysql') {
-      await db.execute('UPDATE users SET is_admin = 0 WHERE username = ?', [targetUsername]);
+      await db.execute('UPDATE users SET is_admin = 0 WHERE username = ?', [username]);
     } else {
       await new Promise((resolve, reject) => {
-        db.run('UPDATE users SET is_admin = 0 WHERE username = ?', [targetUsername], (err) => {
+        db.run('UPDATE users SET is_admin = 0 WHERE username = ?', [username], (err) => {
           if (err) return reject(err);
           resolve();
         });
@@ -382,7 +389,8 @@ async function handleDemoteUser(message, ws, key) {
 
     sendSuccess(ws, key, {
       action: 'demote_user',
-      message: `User ${targetUsername} has been demoted from admin`
+      username: username,
+      message: `User ${username} has been demoted from admin`
     });
   } catch (err) {
     sendError(ws, key, 'Failed to demote user');

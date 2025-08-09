@@ -12,7 +12,7 @@ function handleLogin(message, ws, key) {
   validateLogin(username, password).then(user => {
     if (user) {
       // Store authenticated session
-      const { authenticatedSessions } = require('../websocketconnectionHandler');
+      const { authenticatedSessions } = require('../websocket/connectionHandler');
       authenticatedSessions.set(ws, {
         username: user.username,
         isAdmin: user.is_admin === 1 || user.is_admin === true,
