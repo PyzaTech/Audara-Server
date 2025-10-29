@@ -10,6 +10,7 @@ async function createPlaylistTable() {
       id ${dbConfig.type === 'mysql' ? 'VARCHAR(255)' : 'TEXT'} PRIMARY KEY,
       name ${dbConfig.type === 'mysql' ? 'VARCHAR(255)' : 'TEXT'} NOT NULL,
       description ${dbConfig.type === 'mysql' ? 'TEXT' : 'TEXT'},
+      image ${dbConfig.type === 'mysql' ? 'LONGTEXT' : 'TEXT'},
       username ${dbConfig.type === 'mysql' ? 'VARCHAR(255)' : 'TEXT'} NOT NULL,
       created_at ${dbConfig.type === 'mysql' ? 'TIMESTAMP' : 'DATETIME'} DEFAULT ${dbConfig.type === 'mysql' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP'},
       FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
@@ -53,7 +54,7 @@ async function createPlaylistTable() {
   }
 }
 
-async function createPlaylist(username, name, description) {
+async function createPlaylist(username, name, description, image = null) {
   const db = getDb();
   const dbConfig = getDbConfig();
   const playlistId = uuidv4();
@@ -61,14 +62,14 @@ async function createPlaylist(username, name, description) {
   try {
     if (dbConfig.type === 'mysql') {
       await db.execute(
-        'INSERT INTO playlists (id, name, description, username) VALUES (?, ?, ?, ?)',
-        [playlistId, name, description, username]
+        'INSERT INTO playlists (id, name, description, image, username) VALUES (?, ?, ?, ?, ?)',
+        [playlistId, name, description, image, username]
       );
     } else {
       return new Promise((resolve, reject) => {
         db.run(
-          'INSERT INTO playlists (id, name, description, username) VALUES (?, ?, ?, ?)',
-          [playlistId, name, description, username],
+          'INSERT INTO playlists (id, name, description, image, username) VALUES (?, ?, ?, ?, ?)',
+          [playlistId, name, description, image, username],
           function(err) {
             if (err) return reject(err);
             resolve(playlistId);
@@ -83,7 +84,100 @@ async function createPlaylist(username, name, description) {
   }
 }
 
-async function getUserPlaylists(username) {
+async function updatePlaylist(playlistId, username, updates) {
+  const db = getDb();
+  const dbConfig = getDbConfig();
+
+  try {
+    if (dbConfig.type === 'mysql') {
+      // First check if playlist exists and user has access
+      const [playlistRows] = await db.execute(
+        'SELECT id FROM playlists WHERE id = ? AND username = ?',
+        [playlistId, username]
+      );
+      
+      if (playlistRows.length === 0) {
+        throw new Error('Playlist not found or access denied');
+      }
+
+      // Build update query dynamically based on provided fields
+      const updateFields = [];
+      const updateValues = [];
+      
+      if (updates.name !== undefined) {
+        updateFields.push('name = ?');
+        updateValues.push(updates.name);
+      }
+      
+      if (updates.description !== undefined) {
+        updateFields.push('description = ?');
+        updateValues.push(updates.description);
+      }
+      
+      if (updates.image !== undefined) {
+        updateFields.push('image = ?');
+        updateValues.push(updates.image);
+      }
+      
+      if (updateFields.length === 0) {
+        throw new Error('No valid fields to update');
+      }
+      
+      updateValues.push(playlistId, username);
+      
+      const updateSql = `UPDATE playlists SET ${updateFields.join(', ')} WHERE id = ? AND username = ?`;
+      await db.execute(updateSql, updateValues);
+    } else {
+      return new Promise((resolve, reject) => {
+        // First check if playlist exists and user has access
+        db.get(
+          'SELECT id FROM playlists WHERE id = ? AND username = ?',
+          [playlistId, username],
+          (err, playlist) => {
+            if (err) return reject(err);
+            if (!playlist) return reject(new Error('Playlist not found or access denied'));
+
+            // Build update query dynamically based on provided fields
+            const updateFields = [];
+            const updateValues = [];
+            
+            if (updates.name !== undefined) {
+              updateFields.push('name = ?');
+              updateValues.push(updates.name);
+            }
+            
+            if (updates.description !== undefined) {
+              updateFields.push('description = ?');
+              updateValues.push(updates.description);
+            }
+            
+            if (updates.image !== undefined) {
+              updateFields.push('image = ?');
+              updateValues.push(updates.image);
+            }
+            
+            if (updateFields.length === 0) {
+              return reject(new Error('No valid fields to update'));
+            }
+            
+            updateValues.push(playlistId, username);
+            
+            const updateSql = `UPDATE playlists SET ${updateFields.join(', ')} WHERE id = ? AND username = ?`;
+            db.run(updateSql, updateValues, function(err) {
+              if (err) return reject(err);
+              resolve();
+            });
+          }
+        );
+      });
+    }
+  } catch (err) {
+    console.error('❌ Update playlist error:', err.message);
+    throw err;
+  }
+}
+
+async function getUserPlaylists(username, tempUrls) {
   const db = getDb();
   const dbConfig = getDbConfig();
 
@@ -102,6 +196,7 @@ async function getUserPlaylists(username) {
         id: row.id,
         name: row.name,
         description: row.description,
+        image: row.image ? require('../services/imageService').convertPlaylistImageToUrl(row.image, tempUrls) : null,
         songCount: parseInt(row.songCount),
         createdAt: row.created_at,
         songs: []
@@ -117,14 +212,15 @@ async function getUserPlaylists(username) {
           ORDER BY p.created_at DESC
         `, [username], (err, rows) => {
           if (err) return reject(err);
-          resolve(rows.map(row => ({
-            id: row.id,
-            name: row.name,
-            description: row.description,
-            songCount: parseInt(row.songCount),
-            createdAt: row.created_at,
-            songs: []
-          })));
+                  resolve(rows.map(row => ({
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          image: row.image ? require('../services/imageService').convertPlaylistImageToUrl(row.image, tempUrls) : null,
+          songCount: parseInt(row.songCount),
+          createdAt: row.created_at,
+          songs: []
+        })));
         });
       });
     }
@@ -134,7 +230,7 @@ async function getUserPlaylists(username) {
   }
 }
 
-async function getPlaylistSongs(playlistId, username) {
+async function getPlaylistSongs(playlistId, username, tempUrls) {
   const db = getDb();
   const dbConfig = getDbConfig();
 
@@ -162,13 +258,14 @@ async function getPlaylistSongs(playlistId, username) {
         id: playlist.id,
         name: playlist.name,
         description: playlist.description,
+        image: playlist.image ? require('../services/imageService').convertPlaylistImageToUrl(playlist.image, tempUrls) : null,
         songCount: songRows.length,
         createdAt: playlist.created_at,
         songs: songRows.map(song => ({
           id: song.song_id,
           title: song.title,
           artist: song.artist,
-          image: song.image,
+          image: song.image, // Use the image URL directly from database
           duration: song.duration
         }))
       };
@@ -193,13 +290,14 @@ async function getPlaylistSongs(playlistId, username) {
                   id: playlist.id,
                   name: playlist.name,
                   description: playlist.description,
+                  image: playlist.image ? require('../services/imageService').convertPlaylistImageToUrl(playlist.image, tempUrls) : null,
                   songCount: songs.length,
                   createdAt: playlist.created_at,
                   songs: songs.map(song => ({
                     id: song.song_id,
                     title: song.title,
                     artist: song.artist,
-                    image: song.image,
+                    image: song.image, // Use the image URL directly from database
                     duration: song.duration
                   }))
                 });
@@ -407,7 +505,7 @@ async function deletePlaylist(playlistId, username) {
   }
 }
 
-async function getPlaylistForPlayback(playlistId, username) {
+async function getPlaylistForPlayback(playlistId, username, tempUrls) {
   const db = getDb();
   const dbConfig = getDbConfig();
 
@@ -433,7 +531,7 @@ async function getPlaylistForPlayback(playlistId, username) {
         id: song.song_id,
         title: song.title,
         artist: song.artist,
-        image: song.image,
+        image: song.image, // Use the image URL directly from database
         duration: song.duration,
         url: song.url
       }));
@@ -458,7 +556,7 @@ async function getPlaylistForPlayback(playlistId, username) {
                   id: song.song_id,
                   title: song.title,
                   artist: song.artist,
-                  image: song.image,
+                  image: song.image, // Use the image URL directly from database
                   duration: song.duration,
                   url: song.url
                 })));
@@ -477,6 +575,7 @@ async function getPlaylistForPlayback(playlistId, username) {
 module.exports = {
   createPlaylistTable,
   createPlaylist,
+  updatePlaylist,
   getUserPlaylists,
   getPlaylistSongs,
   addSongToPlaylist,

@@ -18,6 +18,7 @@ const {
 } = require('../handlers/adminHandler');
 const {
   handleCreatePlaylist,
+  handleUpdatePlaylist,
   handleGetPlaylists,
   handleGetPlaylistSongs,
   handleAddSongToPlaylist,
@@ -114,11 +115,14 @@ function handleConnection(ws, req, tempUrls, debug) {
         case 'create_playlist':
           await handleCreatePlaylist(message, ws, key);
           break;
+        case 'update_playlist':
+          await handleUpdatePlaylist(message, ws, key);
+          break;
         case 'get_playlists':
-          await handleGetPlaylists(message, ws, key);
+          await handleGetPlaylists(message, ws, key, tempUrls);
           break;
         case 'get_playlist_songs':
-          await handleGetPlaylistSongs(message, ws, key);
+          await handleGetPlaylistSongs(message, ws, key, tempUrls);
           break;
         case 'add_song_to_playlist':
           await handleAddSongToPlaylist(message, ws, key);
@@ -130,7 +134,7 @@ function handleConnection(ws, req, tempUrls, debug) {
           await handleDeletePlaylist(message, ws, key);
           break;
         case 'play_playlist':
-          await handlePlayPlaylist(message, ws, key);
+          await handlePlayPlaylist(message, ws, key, tempUrls);
           break;
         default:
           ws.send(encryptMessage(JSON.stringify({ success: false, error: 'Unknown action' }), key));

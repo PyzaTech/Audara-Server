@@ -9,6 +9,7 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 // Import modular components
 const { initDatabase } = require('./database/dbManager');
 const { handleConnection } = require('./websocket/connectionHandler');
+const { getImageFromTemporaryUrl, getImageBuffer } = require('./services/imageService');
 
 // Load configuration
 const configPath = path.join(__dirname, 'config.json');
@@ -119,6 +120,36 @@ app.get('/stream/:id', (req, res) => {
     console.error('❌ Error streaming song:', err.message);
     res.status(500).send('❌ Error streaming song');
   });
+});
+
+// Image serving endpoint
+app.get('/image/:token', (req, res) => {
+  const { token } = req.params;
+
+  // Get image data from temporary URL
+  const imageData = getImageFromTemporaryUrl(token, tempUrls);
+  
+  if (!imageData) {
+    return res.status(404).send('❌ Invalid or expired image URL');
+  }
+
+  // Convert base64 to buffer and get metadata
+  const imageBuffer = getImageBuffer(imageData);
+  
+  if (!imageBuffer) {
+    return res.status(500).send('❌ Error processing image');
+  }
+
+  if(debug)
+    console.log(`🖼️  Serving image from temporary URL: ${token}`);
+
+  // Set appropriate headers
+  res.setHeader('Content-Type', imageBuffer.mimeType);
+  res.setHeader('Content-Length', imageBuffer.size);
+  res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes cache
+  
+  // Send the image
+  res.send(imageBuffer.buffer);
 });
 
 // WebSocket connection handlers
